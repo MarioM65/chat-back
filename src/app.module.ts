@@ -9,9 +9,10 @@ import { UserService } from './services/user/user.service';
 import { UserBloqueadoService } from './services/user_bloqueado/user_bloqueado.service';
 import { ParticipanteConversaService } from './services/participante_conversa/participante_conversa.service';
 import { ConversaService } from './services/conversa/conversa.service';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
-  imports: [],
+  imports: [AuthModule],
   controllers: [ UsersController, UsersBloqueadosController, AuthController, ConversaController, ParticipanteConversaController],
   providers: [PrismaService, UserService, UserBloqueadoService, ConversaService, ParticipanteConversaService],
 })
