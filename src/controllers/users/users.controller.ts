@@ -5,11 +5,13 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { hashPassword } from 'src/helpers/hash';
 import { CreateUser } from 'src/interfaces/user';
+import { Public } from 'src/midlewares/public';
 import { UserService } from 'src/services/user/user.service';
 
 @Controller('users')
 export class UsersController {
     constructor(private readonly userService: UserService) {}
+    @Public()
     @Get()
     async getUsers() : Promise<Usuario[]> {
         return this.userService.getAllUsers();
