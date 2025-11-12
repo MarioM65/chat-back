@@ -7,12 +7,13 @@ import { AuthController } from './controllers/auth/auth.controller';
 import { PrismaService } from './services/prisma/prisma.service';
 import { UserService } from './services/user/user.service';
 import { UserBloqueadoService } from './services/user_bloqueado/user_bloqueado.service';
-import { ParticipanteConversaService } from './services/participante_conversa/participante_conversa.service';
-import { ConversaService } from './services/conversa/conversa.service';
+import { TesteController } from './teste/teste.controller';
+import { UserModule } from './modules/user/user.module';
+import { UserBloqueadoModule } from './modules/user_bloqueado/user_bloqueado.module';
 
 @Module({
   imports: [],
-  controllers: [ UsersController, UsersBloqueadosController, AuthController, ConversaController, ParticipanteConversaController],
-  providers: [PrismaService, UserService, UserBloqueadoService, ConversaService, ParticipanteConversaService],
+  controllers: [ UsersController, UsersBloqueadosController, AuthController, TesteController],
+  providers: [PrismaService, UserService, UserBloqueadoService],
 })
 export class AppModule {}
