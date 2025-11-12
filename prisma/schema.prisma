@@ -35,3 +35,18 @@ model UsuarioBloqueado{
   usuario        Usuario   @relation(fields: [id_usuario], references: [id])
   @@unique([id_usuario, id_usuario_bloqueado])
 }
+
+model Conversa {
+  id_conversa Int @id @default(autoincrement())
+  tipo_conversa String
+  nome_conversa String
+  participante_conversa ParticipanteConversa[]
+}
+
+model ParticipanteConversa  {
+  id_participante_conversa Int @id @default(autoincrement())
+  id_conversa Int
+  id_usuario Int
+  tipo_participante String
+  conversa Conversa @relation(fields: [id_conversa], references: [id_conversa])
+}
