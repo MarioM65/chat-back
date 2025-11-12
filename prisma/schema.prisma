@@ -43,12 +43,13 @@ model Mensagem {
   remetente     Usuario   @relation(fields: [id_remetente], references: [id])
   id_conversa   Int?
   conteudo      String?
-  tipo          String    // 'texto', 'imagem', 'video', 'arquivo'
+  tipo          String    
   lida          Boolean   @default(false)
   respondendo_a Int?
   resposta      Mensagem? @relation("RespostaMensagem", fields: [respondendo_a], references: [id])
   respostas     Mensagem[] @relation("RespostaMensagem")
   criado_em     DateTime  @default(now())
+  deletado_em DateTime?
 
   anexos        Anexo[]
 }
