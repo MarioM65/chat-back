@@ -10,10 +10,14 @@ import { UserBloqueadoService } from './services/user_bloqueado/user_bloqueado.s
 import { ParticipanteConversaService } from './services/participante_conversa/participante_conversa.service';
 import { ConversaService } from './services/conversa/conversa.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { MensagensController } from './controllers/mensagens/mensagens.controller';
+import { MensagensService } from './services/mensagens/mensagens.service';
+import { AnexosController } from './controllers/anexos/anexos.controller';
+import { AnexosService } from './services/anexos/anexos.service';
 
 @Module({
   imports: [AuthModule],
-  controllers: [ UsersController, UsersBloqueadosController, AuthController, ConversaController, ParticipanteConversaController],
-  providers: [PrismaService, UserService, UserBloqueadoService, ConversaService, ParticipanteConversaService],
+  controllers: [ UsersController, UsersBloqueadosController, AuthController, ConversaController, ParticipanteConversaController, MensagensController, AnexosController ],
+  providers: [PrismaService, UserService, UserBloqueadoService, ConversaService, ParticipanteConversaService, AnexosService, MensagensService],
 })
 export class AppModule {}

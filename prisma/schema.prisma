@@ -10,7 +10,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 model Usuario{
@@ -25,6 +25,7 @@ model Usuario{
   atualizado_em DateTime         @updatedAt
   deletado_em   DateTime?
   usuariosBloqueados UsuarioBloqueado[]
+  mensagem Mensagem[]
 }
 model UsuarioBloqueado{
   id               Int       @id @default(autoincrement())
@@ -50,3 +51,33 @@ model ParticipanteConversa  {
   tipo_participante String
   conversa Conversa @relation(fields: [id_conversa], references: [id_conversa])
 }
+model Mensagem {
+  id            Int       @id @default(autoincrement())
+  id_remetente  Int
+  remetente     Usuario   @relation(fields: [id_remetente], references: [id])
+  id_conversa   Int?
+  conteudo      String?
+  tipo          String    
+  lida          Boolean   @default(false)
+  respondendo_a Int?
+  resposta      Mensagem? @relation("RespostaMensagem", fields: [respondendo_a], references: [id])
+  respostas     Mensagem[] @relation("RespostaMensagem")
+  criado_em     DateTime  @default(now())
+  deletado_em DateTime?
+
+  anexos        Anexo[]
+}
+
+
+model Anexo {
+  id            Int       @id @default(autoincrement())
+  id_mensagem   Int
+  mensagem      Mensagem  @relation(fields: [id_mensagem], references: [id])
+  nome_arquivo  String
+  caminho_arquivo String
+  tipo          String    // 'imagem', 'video', 'pdf', etc.
+  tamanho       Int
+  criado_em     DateTime  @default(now())
+}
+
+
