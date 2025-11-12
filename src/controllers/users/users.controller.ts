@@ -3,6 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Usuario } from 'generated/prisma';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import { hashPassword } from 'src/helpers/hash';
 import { CreateUser } from 'src/interfaces/user';
 import { UserService } from 'src/services/user/user.service';
 
@@ -34,6 +35,9 @@ export class UsersController {
       // Salva o path relativo da imagem
       data.foto_perfil = join('uploads/fotos_perfil', foto_perfil.filename);
     }
+    if (data.senha) {
+      data.senha = await hashPassword(data.senha);
+    }
 
     return this.userService.createUser(data);
   }
@@ -63,6 +67,9 @@ export class UsersController {
     ) : Promise<Usuario> {
         if (foto_perfil) {
             data.foto_perfil = join('uploads/fotos_perfil', foto_perfil.filename);
+        }
+        if (data.senha) {
+          data.senha = await hashPassword(data.senha);
         }
         return this.userService.updateUser(Number(id), data);
     }
