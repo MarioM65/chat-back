@@ -81,3 +81,21 @@ model Anexo {
 }
 
 
+model LeituraMensagem {
+  id_leitura      Int      @id @default(autoincrement())
+  id_mensagem     Int
+  id_usuario      Int
+  data_hora_leitura DateTime
+}
+
+model Notificacao {
+  id_notificacao  Int      @id @default(autoincrement())
+  id_usuario       Int
+  id_mensagem      Int
+  tipo_notificacao String
+  data_hora_criacao DateTime
+  status           String
+}
+
+
+
