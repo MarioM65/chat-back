@@ -11,4 +11,5 @@ export class UpdateNotificacao {
   id_mensagem?: number;
   tipo_notificacao?: string;
   data_hora_criacao?: Date;
-  st
+  status?: string;
+}

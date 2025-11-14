@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Notificacao } from 'generated/prisma';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import { CreateNotificacao } from 'src/interfaces/notificacao';
+import { CreateNotificacao, UpdateNotificacao } from '../../interfaces/notificacao';
 import { NotificacaoService } from 'src/services/notificacao/notificacao.service';
 
 @Controller('notificacoes')
@@ -26,7 +26,7 @@ export class NotificacaoController {
   }
 
   @Put(':id')
-  async updateNotificacao(@Param('id') id: number, @Body() data: Partial<CreateNotificacao>): Promise<Notificacao> {
+  async updateNotificacao(@Param('id') id: number, @Body() data: UpdateNotificacao): Promise<Notificacao> {
     return this.notificacaoService.updateNotificacao(Number(id), data);
   }
 

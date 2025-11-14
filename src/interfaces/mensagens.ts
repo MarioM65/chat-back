@@ -3,7 +3,8 @@ export class CreateMensagem {
     conteudo?: string;                    
     tipo: string; 
     id_conversa?: number;                 
-    respondendo_a?: number;               
+    respondendo_a?: number;
+    iv?: string;               
 }
 
 export class UpdateMensagem {
@@ -12,5 +13,6 @@ export class UpdateMensagem {
     lida?: boolean;
     respondendo_a?: number;
     atualizado_em?: Date;
+    iv: string;
 }
 

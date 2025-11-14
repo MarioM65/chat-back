@@ -26,6 +26,8 @@ model Usuario{
   deletado_em   DateTime?
   usuariosBloqueados UsuarioBloqueado[]
   mensagem Mensagem[]
+  notificacoes Notificacao[]
+  leituramensagem LeituraMensagem[]
 }
 model UsuarioBloqueado{
   id               Int       @id @default(autoincrement())
@@ -64,8 +66,12 @@ model Mensagem {
   respostas     Mensagem[] @relation("RespostaMensagem")
   criado_em     DateTime  @default(now())
   deletado_em DateTime?
-
+  isViewUnic    Boolean?
+  iv            String?
   anexos        Anexo[]
+  notificacoes  Notificacao[]
+  leituramensagem LeituraMensagem[]
+  
 }
 
 
@@ -83,15 +89,19 @@ model Anexo {
 
 model LeituraMensagem {
   id_leitura      Int      @id @default(autoincrement())
-  id_mensagem     Int
-  id_usuario      Int
+  id_usuario       Int
+  usuario           Usuario   @relation(fields: [id_usuario], references: [id])
+  id_mensagem      Int
+  mensagem          Mensagem @relation(fields:[id_mensagem], references: [id])
   data_hora_leitura DateTime
 }
 
 model Notificacao {
   id_notificacao  Int      @id @default(autoincrement())
   id_usuario       Int
+  usuario           Usuario   @relation(fields: [id_usuario], references: [id])
   id_mensagem      Int
+  mensagem          Mensagem @relation(fields:[id_mensagem], references: [id])
   tipo_notificacao String
   data_hora_criacao DateTime
   status           String

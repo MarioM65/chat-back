@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { LeituraMensagem } from 'generated/prisma';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import { CreateLeituraMensagem } from 'src/interfaces/leitura_mensagem';
+import { CreateLeituraMensagem } from '../../interfaces/leitura_mensagem';
 import { LeituraMensagemService } from 'src/services/leitura_mensagem/leitura_mensagem.service';
 
 @Controller('leitura_mensagens')

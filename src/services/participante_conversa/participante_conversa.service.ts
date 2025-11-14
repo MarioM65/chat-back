@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateParticipanteConversa, UpdateParticipanteConversa } from 'src/interfaces/participante_conversa';
+import { CreateParticipanteConversa, UpdateParticipanteConversa } from '../../interfaces/participante_conversa';
 
 @Injectable()
 export class ParticipanteConversaService {
