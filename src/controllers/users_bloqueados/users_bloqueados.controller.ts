@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { UsuarioBloqueado } from 'generated/prisma';
-import { CreateUserBloqueado, UpdateUserBloqueado } from 'src/interfaces/user_bloqueado';
+import { CreateUserBloqueado, UpdateUserBloqueado } from '../../interfaces/user_bloqueado';
 import { UserBloqueadoService } from 'src/services/user_bloqueado/user_bloqueado.service';
 
 @Controller('users-bloqueados')

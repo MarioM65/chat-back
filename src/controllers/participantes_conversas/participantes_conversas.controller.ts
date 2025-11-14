@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { ParticipanteConversa } from 'generated/prisma';
-import { CreateParticipanteConversa, UpdateParticipanteConversa } from 'src/interfaces/participante_conversa';
+import { CreateParticipanteConversa, UpdateParticipanteConversa } from '../../interfaces/participante_conversa';
 import { ParticipanteConversaService } from 'src/services/participante_conversa/participante_conversa.service';
 
 @Controller('participante_conversas')
