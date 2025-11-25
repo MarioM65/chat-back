@@ -27,6 +27,7 @@ model Usuario{
   usuariosBloqueados UsuarioBloqueado[]
   mensagem Mensagem[]
   notificacoes Notificacao[]
+  participante_conversa ParticipanteConversa[]
   leituramensagem LeituraMensagem[]
 }
 model UsuarioBloqueado{
@@ -35,7 +36,7 @@ model UsuarioBloqueado{
   id_usuario_bloqueado Int
   criado_em    DateTime   @default(now())
   atualizado_em DateTime   @updatedAt
-  usuario        Usuario   @relation(fields: [id_usuario], references: [id])
+  usuario        Usuario   @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
   @@unique([id_usuario, id_usuario_bloqueado])
 }
 
@@ -43,26 +44,38 @@ model Conversa {
   id_conversa Int @id @default(autoincrement())
   tipo_conversa String
   nome_conversa String
+  foto_conversa String?
   participante_conversa ParticipanteConversa[]
+  mensagens             Mensagem[]
+
 }
 
-model ParticipanteConversa  {
-  id_participante_conversa Int @id @default(autoincrement())
-  id_conversa Int
-  id_usuario Int
-  tipo_participante String
-  conversa Conversa @relation(fields: [id_conversa], references: [id_conversa])
+
+enum TipoParticipante {
+  CRIADOR
+  ADMIN
+  MEMBRO
+}
+
+model ParticipanteConversa {
+  id_participante_conversa Int              @id @default(autoincrement())
+  id_conversa              Int
+  id_usuario               Int
+  usuario                  Usuario          @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
+  tipo_participante        TipoParticipante @default(MEMBRO)
+  conversa                 Conversa         @relation(fields: [id_conversa], references: [id_conversa], onDelete: Cascade)
 }
 model Mensagem {
   id            Int       @id @default(autoincrement())
   id_remetente  Int
-  remetente     Usuario   @relation(fields: [id_remetente], references: [id])
-  id_conversa   Int?
+  remetente     Usuario   @relation(fields: [id_remetente], references: [id], onDelete: Cascade)
+  id_conversa   Int
+  conversa      Conversa  @relation(fields: [id_conversa], references: [id_conversa], onDelete: Cascade)
   conteudo      String?
   tipo          String    
   lida          Boolean   @default(false)
   respondendo_a Int?
-  resposta      Mensagem? @relation("RespostaMensagem", fields: [respondendo_a], references: [id])
+  resposta      Mensagem? @relation("RespostaMensagem", fields: [respondendo_a], references: [id], onDelete: Cascade)
   respostas     Mensagem[] @relation("RespostaMensagem")
   criado_em     DateTime  @default(now())
   deletado_em DateTime?
@@ -78,7 +91,7 @@ model Mensagem {
 model Anexo {
   id            Int       @id @default(autoincrement())
   id_mensagem   Int
-  mensagem      Mensagem  @relation(fields: [id_mensagem], references: [id])
+  mensagem      Mensagem  @relation(fields: [id_mensagem], references: [id], onDelete: Cascade)
   nome_arquivo  String
   caminho_arquivo String
   tipo          String    // 'imagem', 'video', 'pdf', etc.
@@ -90,18 +103,18 @@ model Anexo {
 model LeituraMensagem {
   id_leitura      Int      @id @default(autoincrement())
   id_usuario       Int
-  usuario           Usuario   @relation(fields: [id_usuario], references: [id])
+  usuario           Usuario   @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
   id_mensagem      Int
-  mensagem          Mensagem @relation(fields:[id_mensagem], references: [id])
+  mensagem          Mensagem @relation(fields:[id_mensagem], references: [id], onDelete: Cascade)
   data_hora_leitura DateTime
 }
 
 model Notificacao {
   id_notificacao  Int      @id @default(autoincrement())
   id_usuario       Int
-  usuario           Usuario   @relation(fields: [id_usuario], references: [id])
+  usuario           Usuario   @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
   id_mensagem      Int
-  mensagem          Mensagem @relation(fields:[id_mensagem], references: [id])
+  mensagem          Mensagem @relation(fields:[id_mensagem], references: [id], onDelete: Cascade)
   tipo_notificacao String
   data_hora_criacao DateTime
   status           String

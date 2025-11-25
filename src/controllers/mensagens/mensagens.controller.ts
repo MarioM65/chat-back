@@ -1,11 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors,
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Mensagem } from 'generated/prisma';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { CreateMensagem } from 'src/interfaces/mensagens';
+import { extname } from 'path';
+import { User } from 'src/common/decorators/user.decorator';
 import { MensagensService } from 'src/services/mensagens/mensagens.service';
+import { CreateMensagemDto, UpdateMensagemDto } from './mensagens.dto';
 
 @Controller('mensagens')
 export class MensagensController {
@@ -17,17 +27,27 @@ export class MensagensController {
   }
 
   @Get(':id')
-  async getMensagemById(@Param('id') id: number): Promise<Mensagem | null> {
+  async getMensagemById(@Param('id') id: string): Promise<Mensagem | null> {
     return this.mensagensService.getMensagemById(Number(id));
+  }
+  @Get('conversa/:id_conversa')
+  async getMensagensByConversaId(
+    @Param('id_conversa') id_conversa: string,
+  ): Promise<Mensagem[]> {
+    return this.mensagensService.getMensagensByConversaId(
+      Number(id_conversa),
+    );
   }
 
   @Post()
   @UseInterceptors(
-    FileInterceptor('arquivo', {
+    FilesInterceptor('anexos', 10, {
+      // Aceita até 10 arquivos no campo 'anexos'
       storage: diskStorage({
         destination: './uploads/mensagens_anexos',
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           const fileExt = extname(file.originalname);
           cb(null, `${file.fieldname}-${uniqueSuffix}${fileExt}`);
         },
@@ -35,22 +55,21 @@ export class MensagensController {
     }),
   )
   async createMensagem(
-    @Body() data: CreateMensagem,
-    @UploadedFile() arquivo?: Express.Multer.File,
+    @Body() data: CreateMensagemDto,
+    @UploadedFiles() anexos: Array<Express.Multer.File>, // Make anexos non-optional for the interceptor
+    @User() user: { sub: number },
   ): Promise<Mensagem> {
-    if (arquivo) {
-      data.tipo = join('uploads/mensagens_anexos', arquivo.filename);
-    }
-    return this.mensagensService.createMensagem(data);
+    return this.mensagensService.createMensagemComAnexos(data, anexos, user.sub);
   }
 
   @Put(':id')
   @UseInterceptors(
-    FileInterceptor('arquivo', {
+    FilesInterceptor('anexos', 10, {
       storage: diskStorage({
         destination: './uploads/mensagens_anexos',
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
           const fileExt = extname(file.originalname);
           cb(null, `${file.fieldname}-${uniqueSuffix}${fileExt}`);
         },
@@ -58,18 +77,18 @@ export class MensagensController {
     }),
   )
   async updateMensagem(
-    @Param('id') id: number,
-    @Body() data: Partial<CreateMensagem>,
-    @UploadedFile() arquivo?: Express.Multer.File,
+    @Param('id') id: string,
+    @Body() data: UpdateMensagemDto,
+    @UploadedFiles() anexos?: Array<Express.Multer.File>,
   ): Promise<Mensagem> {
-    if (arquivo) {
-      data.tipo = join('uploads/mensagens_anexos', arquivo.filename);
-    }
-    return this.mensagensService.updateMensagem(Number(id), data);
+    return this.mensagensService.updateMensagem(Number(id), data, anexos);
   }
 
   @Delete(':id')
-  async deleteMensagem(@Param('id') id: number): Promise<Mensagem> {
-    return this.mensagensService.deleteMensagem(Number(id));
+  async deleteMensagem(
+    @Param('id') id: string,
+    @User() user: { sub: number },
+  ): Promise<Mensagem> {
+    return this.mensagensService.deleteMensagem(Number(id), user.sub);
   }
 }

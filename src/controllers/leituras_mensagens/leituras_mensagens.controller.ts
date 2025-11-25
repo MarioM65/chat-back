@@ -1,10 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { LeituraMensagem } from 'generated/prisma';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { CreateLeituraMensagem } from '../../interfaces/leitura_mensagem';
 import { LeituraMensagemService } from 'src/services/leitura_mensagem/leitura_mensagem.service';
+import { CreateLeituraMensagemDto, UpdateLeituraMensagemDto } from './leituras_mensagens.dto';
+import { User } from 'src/common/decorators/user.decorator';
 
 @Controller('leitura_mensagens')
 export class LeituraMensagemController {
@@ -16,23 +14,33 @@ export class LeituraMensagemController {
   }
 
   @Post()
-  async createLeituraMensagem(@Body() data: CreateLeituraMensagem): Promise<LeituraMensagem> {
-    return this.leituraMensagemService.createLeituraMensagem(data);
+  async createLeituraMensagem(
+    @Body() data: CreateLeituraMensagemDto,
+    @User() user: { sub: number },
+  ): Promise<LeituraMensagem> {
+    return this.leituraMensagemService.createLeituraMensagem(data, user.sub);
   }
 
   @Get(':id')
-  async getLeituraMensagemById(@Param('id') id: number): Promise<LeituraMensagem | null> {
+  async getLeituraMensagemById(@Param('id') id: string): Promise<LeituraMensagem | null> {
     return this.leituraMensagemService.getLeituraMensagemById(Number(id));
   }
 
   @Put(':id')
-  async updateLeituraMensagem(@Param('id') id: number, @Body() data: Partial<CreateLeituraMensagem>): Promise<LeituraMensagem> {
-    return this.leituraMensagemService.updateLeituraMensagem(Number(id), data);
+  async updateLeituraMensagem(
+    @Param('id') id: string,
+    @Body() data: UpdateLeituraMensagemDto,
+    @User() user: { sub: number },
+  ): Promise<LeituraMensagem> {
+    return this.leituraMensagemService.updateLeituraMensagem(Number(id), data, user.sub);
   }
 
   @Delete(':id')
-  async deleteLeituraMensagem(@Param('id') id: number): Promise<LeituraMensagem> {
-    return this.leituraMensagemService.deleteLeituraMensagem(Number(id));
+  async deleteLeituraMensagem(
+    @Param('id') id: string,
+    @User() user: { sub: number },
+  ): Promise<LeituraMensagem> {
+    return this.leituraMensagemService.deleteLeituraMensagem(Number(id), user.sub);
   }
 }
 

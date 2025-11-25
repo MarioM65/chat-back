@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/services/prisma/prisma.service';
 import { CreateAnexo } from 'src/interfaces/anexos';
 
@@ -11,7 +11,11 @@ export class AnexosService {
   }
 
   async getAnexoById(id: number) {
-    return this.prisma.anexo.findUnique({ where: { id } });
+    const anexo = await this.prisma.anexo.findUnique({ where: { id } });
+    if (!anexo) {
+      throw new HttpException('Anexo not found', HttpStatus.NOT_FOUND);
+    }
+    return anexo;
   }
 
   async createAnexo(data: CreateAnexo){
@@ -19,10 +23,18 @@ export class AnexosService {
   }
 
   async updateAnexo(id: number, data: Partial<CreateAnexo>) {
+    const anexo = await this.prisma.anexo.findUnique({ where: { id } });
+    if (!anexo) {
+      throw new HttpException('Anexo not found', HttpStatus.NOT_FOUND);
+    }
     return this.prisma.anexo.update({ where: { id }, data });
   }
 
   async deleteAnexo(id: number){
+    const anexo = await this.prisma.anexo.findUnique({ where: { id } });
+    if (!anexo) {
+      throw new HttpException('Anexo not found', HttpStatus.NOT_FOUND);
+    }
     return this.prisma.anexo.delete({ where: { id } });
   }
 }

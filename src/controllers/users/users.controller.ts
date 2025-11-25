@@ -3,15 +3,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Usuario } from 'generated/prisma';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import { hashPassword } from 'src/helpers/hash';
-import { CreateUser } from 'src/interfaces/user';
-import { Public } from 'src/midlewares/public';
 import { UserService } from 'src/services/user/user.service';
+import { RegisterDto } from '../auth/auth.dto';
+import { UpdateUserDto } from './users.dto';
+import { User } from 'src/common/decorators/user.decorator'; // Import User decorator
 
 @Controller('users')
 export class UsersController {
     constructor(private readonly userService: UserService) {}
-    @Public()
     @Get()
     async getUsers() : Promise<Usuario[]> {
         return this.userService.getAllUsers();
@@ -30,26 +29,23 @@ export class UsersController {
     }),
   )
   async createUser(
-    @Body() data: CreateUser,
+    @Body() data: RegisterDto,
     @UploadedFile() foto_perfil?: Express.Multer.File,
   ): Promise<Usuario> {
     if (foto_perfil) {
       // Salva o path relativo da imagem
       data.foto_perfil = join('uploads/fotos_perfil', foto_perfil.filename);
     }
-    if (data.senha) {
-      data.senha = await hashPassword(data.senha);
-    }
 
     return this.userService.createUser(data);
   }
     @Get(':id')
     async getUserById(
-        @Param('id') id: number
+        @Param('id') id: string
     ) : Promise<Usuario|null> {
         return this.userService.getUserById(Number(id));
     }
-    @Put(':id')
+    @Put() // Removed ':id' from path
     @UseInterceptors(
       FileInterceptor('foto_perfil', {
         storage: diskStorage({
@@ -63,27 +59,24 @@ export class UsersController {
       }),
     )
     async updateUser(
-        @Param('id') id: number,
-        @Body() data: Partial<CreateUser>,
+        @Body() data: UpdateUserDto,
         @UploadedFile() foto_perfil?: Express.Multer.File,
+        @User() user: { sub: number }, // Added User decorator
     ) : Promise<Usuario> {
         if (foto_perfil) {
             data.foto_perfil = join('uploads/fotos_perfil', foto_perfil.filename);
         }
-        if (data.senha) {
-          data.senha = await hashPassword(data.senha);
-        }
-        return this.userService.updateUser(Number(id), data);
+        return this.userService.updateUser(user.sub, data); // Passed user.sub
     }
     @Delete(':id')
     async deleteUser(
-        @Param('id') id: number
+        @Param('id') id: string
     ) : Promise<Usuario> {
         return this.userService.deleteUser(Number(id));
     }
     @Delete('purge/:id')
     async purgeUser(
-        @Param('id') id: number
+        @Param('id') id: string
     ) : Promise<Usuario> {
         return this.userService.purgeUser(Number(id));
     }
@@ -93,7 +86,7 @@ export class UsersController {
     }
     @Put('restore/:id')
     async restoreUser(
-        @Param('id') id: number
+        @Param('id') id: string
     ) : Promise<Usuario> {
         return this.userService.restoreUser(Number(id));
     }

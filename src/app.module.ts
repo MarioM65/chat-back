@@ -17,10 +17,32 @@ import { AnexosService } from './services/anexos/anexos.service';
 import { MensagensService } from './services/mensagens/mensagens.service';
 import { MensagensController } from './controllers/mensagens/mensagens.controller';
 import { AnexosController } from './controllers/anexos/anexos.controller';
+import { EventsGateway } from './events/events.gateway';
+import { RolesGuard } from './guards/roles.guard';
 
 @Module({
-  imports: [AuthModule, PrismaModule,UserModule],
-  controllers: [ UsersController, UsersBloqueadosController, ConversaController, ParticipanteConversaController, NotificacaoController, LeituraMensagemController, MensagensController, AnexosController ],
-  providers: [UserBloqueadoService, ConversaService, ParticipanteConversaService, LeituraMensagemService, NotificacaoService, AnexosService, MensagensService],
+  imports: [AuthModule, PrismaModule, UserModule],
+  controllers: [
+    UsersController,
+    UsersBloqueadosController,
+    ConversaController,
+    ParticipanteConversaController,
+    NotificacaoController,
+    LeituraMensagemController,
+    MensagensController,
+    AnexosController,
+  ],
+  providers: [
+    UserBloqueadoService,
+    ConversaService,
+    ParticipanteConversaService,
+    LeituraMensagemService,
+    NotificacaoService,
+    AnexosService,
+    MensagensService,
+    EventsGateway,
+    RolesGuard,
+  ],
+  exports: [ParticipanteConversaService]
 })
 export class AppModule {}

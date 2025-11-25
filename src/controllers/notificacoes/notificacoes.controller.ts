@@ -1,10 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { Notificacao } from 'generated/prisma';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { CreateNotificacao, UpdateNotificacao } from '../../interfaces/notificacao';
 import { NotificacaoService } from 'src/services/notificacao/notificacao.service';
+import { CreateNotificacaoDto, UpdateNotificacaoDto } from './notificacoes.dto';
+import { User } from 'src/common/decorators/user.decorator';
 
 @Controller('notificacoes')
 export class NotificacaoController {
@@ -16,24 +14,32 @@ export class NotificacaoController {
   }
 
    @Post()
-  async createNotificacao(@Body() data: CreateNotificacao): Promise<Notificacao> {
-    return this.notificacaoService.createNotificacao(data);
+  async createNotificacao(
+    @Body() data: CreateNotificacaoDto,
+    @User() user: { sub: number },
+  ): Promise<Notificacao> {
+    return this.notificacaoService.createNotificacao(data, user.sub);
   }
 
   @Get(':id')
-  async getNotificacaoById(@Param('id') id: number): Promise<Notificacao | null> {
+  async getNotificacaoById(@Param('id') id: string): Promise<Notificacao | null> {
     return this.notificacaoService.getNotificacaoById(Number(id));
   }
 
   @Put(':id')
-  async updateNotificacao(@Param('id') id: number, @Body() data: UpdateNotificacao): Promise<Notificacao> {
-    return this.notificacaoService.updateNotificacao(Number(id), data);
+  async updateNotificacao(
+    @Param('id') id: string,
+    @Body() data: UpdateNotificacaoDto,
+    @User() user: { sub: number },
+  ): Promise<Notificacao> {
+    return this.notificacaoService.updateNotificacao(Number(id), data, user.sub);
   }
 
     @Delete(':id')
-  async deleteNotificacao(@Param('id') id: number): Promise<Notificacao> {
-    return this.notificacaoService.deleteNotificacao(Number(id));
+  async deleteNotificacao(
+    @Param('id') id: string,
+    @User() user: { sub: number },
+  ): Promise<Notificacao> {
+    return this.notificacaoService.deleteNotificacao(Number(id), user.sub);
   }
 }
-
-
