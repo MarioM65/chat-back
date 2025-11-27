@@ -13,7 +13,7 @@ import { AuthMiddleware } from 'src/midlewares/auth';
         JwtModule.register({
             global: true,
             secret: process.env.jwtSecret || 'defaultSecret',
-            signOptions: { expiresIn: '1h' },
+            signOptions: { expiresIn: '4h' },
         })
     ],
     providers: [AuthService,

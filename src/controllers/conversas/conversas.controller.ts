@@ -68,16 +68,20 @@ export class ConversaController {
   async updateConversa(
     @Param('id_conversa') id_conversa: string,
     @Body() data: UpdateConversaDto,
-    @UploadedFile() file?: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined, // Make explicit
+    @User() user: { sub: number }, // Inject authenticated user ID
   ): Promise<Conversa> {
     if (file) {
       data.foto_conversa = join('uploads/fotos_conversa', file.filename);
     }
-    return this.conversaService.updateConversa(Number(id_conversa), data);
+    return this.conversaService.updateConversa(Number(id_conversa), data, user.sub);
   }
 
   @Delete(':id_conversa')
-  async deleteConversa(@Param('id_conversa') id_conversa: string): Promise<Conversa> {
-    return this.conversaService.deleteConversa(Number(id_conversa));
+  async deleteConversa(
+    @Param('id_conversa') id_conversa: string,
+    @User() user: { sub: number },
+  ): Promise<Conversa> {
+    return this.conversaService.deleteConversa(Number(id_conversa), user.sub);
   }
 }

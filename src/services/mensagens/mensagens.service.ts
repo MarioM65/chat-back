@@ -71,7 +71,7 @@ export class MensagensService {
     const msgs = await this.prisma.mensagem.findMany({
       where: { id_conversa },
       include: { anexos: true, remetente: true },
-      orderBy: { criado_em: 'asc' },
+      orderBy: { criado_em: 'desc' },
     });
 
     for (const msg of msgs) {
@@ -100,12 +100,52 @@ export class MensagensService {
       throw new HttpException('Missing conversation id', HttpStatus.BAD_REQUEST);
     }
     
-    if (!data.conteudo && (!anexos || anexos.length === 0)) {
+    if (!data.conteudo && (anexos.length === 0)) { // Simplified check
       throw new HttpException(
         'A message must have either content or at least one attachment.',
         HttpStatus.BAD_REQUEST,
       );
     }
+
+    // --- Start: Blocked User Check ---
+    const conversation = await this.prisma.conversa.findUnique({
+      where: { id_conversa: data.id_conversa },
+      include: {
+        participante_conversa: {
+          select: { id_usuario: true }
+        }
+      }
+    });
+
+    if (!conversation) {
+        throw new HttpException('Conversation not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (conversation.tipo_conversa === 'individual') {
+        const otherParticipant = conversation.participante_conversa.find(
+            p => p.id_usuario !== userId
+        );
+
+        if (otherParticipant) {
+            // Check if sender (userId) is blocked by the other participant
+            const isBlocked = await this.prisma.usuarioBloqueado.findUnique({
+                where: {
+                    id_usuario_id_usuario_bloqueado: { // This is the unique constraint field
+                        id_usuario: otherParticipant.id_usuario, // The one who might block
+                        id_usuario_bloqueado: userId, // The sender, who might be blocked
+                    },
+                },
+            });
+
+            if (isBlocked) {
+                throw new HttpException(
+                    'Cannot send message: You are blocked by the other participant in this individual conversation.',
+                    HttpStatus.FORBIDDEN,
+                );
+            }
+        }
+    }
+    // --- End: Blocked User Check ---
 
     return this.prisma.$transaction(async (prisma) => {
       let encryptedContent: CryptResult | null = null;

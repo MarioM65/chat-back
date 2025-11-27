@@ -116,13 +116,40 @@ export class ConversaService {
   }
 
 
-  async updateConversa(id_conversa: number, data: UpdateConversa) {
+  async updateConversa(id_conversa: number, data: UpdateConversa, requestingUserId: number) { // Added requestingUserId
     const conversa = await this.prisma.conversa.findUnique({
       where: { id_conversa },
+      include: {
+        participante_conversa: {
+          select: { id_usuario: true, tipo_participante: true }
+        }
+      }
     });
     if (!conversa) {
       throw new HttpException('Conversa not found', HttpStatus.NOT_FOUND);
     }
+
+    // --- Authorization Check for Updating Conversation ---
+    if (conversa.tipo_conversa === 'individual') {
+        throw new HttpException(
+            'Individual conversations cannot be updated via this endpoint.',
+            HttpStatus.FORBIDDEN
+        );
+    }
+
+    // For group conversations, only Admin or Creator can update
+    const requestingParticipant = conversa.participante_conversa.find(
+        p => p.id_usuario === requestingUserId
+    );
+
+    if (!requestingParticipant || (requestingParticipant.tipo_participante !== TipoParticipante.ADMIN && requestingParticipant.tipo_participante !== TipoParticipante.CRIADOR)) {
+        throw new HttpException(
+            'You do not have permission to update this group conversation.',
+            HttpStatus.FORBIDDEN
+        );
+    }
+    // --- End Authorization Check ---
+
     return this.prisma.conversa.update({
       where: { id_conversa },
       data: {
@@ -133,13 +160,41 @@ export class ConversaService {
     });
   }
 
-  async deleteConversa(id_conversa: number) {
+  async deleteConversa(id_conversa: number, requestingUserId: number) { // Added requestingUserId
     const conversa = await this.prisma.conversa.findUnique({
       where: { id_conversa },
+      include: {
+        participante_conversa: {
+          select: { id_usuario: true, tipo_participante: true }
+        }
+      }
     });
+
     if (!conversa) {
       throw new HttpException('Conversa not found', HttpStatus.NOT_FOUND);
     }
+
+    // --- Authorization Check for Deleting Conversation ---
+    if (conversa.tipo_conversa === 'individual') {
+        throw new HttpException(
+            'Individual conversations cannot be deleted via this endpoint. Please delete your participation.',
+            HttpStatus.FORBIDDEN
+        );
+    }
+
+    // For group conversations, only Admin or Creator can delete
+    const requestingParticipant = conversa.participante_conversa.find(
+        p => p.id_usuario === requestingUserId
+    );
+
+    if (!requestingParticipant || (requestingParticipant.tipo_participante !== TipoParticipante.ADMIN && requestingParticipant.tipo_participante !== TipoParticipante.CRIADOR)) {
+        throw new HttpException(
+            'You do not have permission to delete this group conversation.',
+            HttpStatus.FORBIDDEN
+        );
+    }
+    // --- End Authorization Check ---
+
     return this.prisma.conversa.delete({
       where: { id_conversa },
     });

@@ -60,8 +60,8 @@ export class UsersController {
     )
     async updateUser(
         @Body() data: UpdateUserDto,
-        @UploadedFile() foto_perfil?: Express.Multer.File,
         @User() user: { sub: number }, // Added User decorator
+        @UploadedFile() foto_perfil?: Express.Multer.File,
     ) : Promise<Usuario> {
         if (foto_perfil) {
             data.foto_perfil = join('uploads/fotos_perfil', foto_perfil.filename);

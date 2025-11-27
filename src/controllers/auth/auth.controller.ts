@@ -14,7 +14,7 @@ export class AuthController {
     }
     @Public()
     @Post('register')
-    @HttpCode(200)
+    @HttpCode(201) // Changed from 200 to 201
     async register(@Body() data:RegisterDto){
         return this.authService.register(data);
     }

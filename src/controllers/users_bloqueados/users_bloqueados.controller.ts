@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common'
 import { UsuarioBloqueado } from 'generated/prisma';
 import { UserBloqueadoService } from 'src/services/user_bloqueado/user_bloqueado.service';
 import { CreateUserBloqueadoDto, UpdateUserBloqueadoDto } from './users_bloqueados.dto';
+import { User } from 'src/common/decorators/user.decorator'; // Import User decorator
 
 @Controller('users-bloqueados')
 export class UsersBloqueadosController {
@@ -34,29 +35,42 @@ export class UsersBloqueadosController {
     }
     @Post()
     async createUserBloqueado(
-        @Body() data: CreateUserBloqueadoDto
+        @Body() data: CreateUserBloqueadoDto,
+        @User() user: { sub: number }, // Inject authenticated user ID
     ) : Promise<UsuarioBloqueado> {
-        return this.userBloqueadoService.createUserBloqueado(data);
+        // Here, id_usuario is inferred from the authenticated user
+        return this.userBloqueadoService.createUserBloqueado(user.sub, data.id_usuario_bloqueado, user.sub); // Pass user.sub as requestingUserId
     }
     @Put(':id')
     async updateUserBloqueado(
         @Param('id') id: string,
-        @Body( ) data: UpdateUserBloqueadoDto
+        @Body( ) data: UpdateUserBloqueadoDto,
+        @User() user: { sub: number }, // For authorization check in service
     ) : Promise<UsuarioBloqueado> {
-        return this.userBloqueadoService.updateUserBloqueado(Number(id), data);
+        return this.userBloqueadoService.updateUserBloqueado(Number(id), data, user.sub); // Pass user.sub as requestingUserId
     }
 
     @Post('block')
     async blockUser(
-        @Body() data: CreateUserBloqueadoDto
+        @Body() data: CreateUserBloqueadoDto, // data now only contains id_usuario_bloqueado
+        @User() user: { sub: number }, // Inject authenticated user ID
     ) : Promise<UsuarioBloqueado> {
-        return this.userBloqueadoService.blockUser(data.id_usuario, data.id_usuario_bloqueado);
+        return this.userBloqueadoService.blockUser(user.sub, data.id_usuario_bloqueado, user.sub); // Pass user.sub as requestingUserId
     }
 
     @Delete('unblock')
     async unblockUser(
-        @Body() data: CreateUserBloqueadoDto
+        @Body() data: CreateUserBloqueadoDto, // data now only contains id_usuario_bloqueado
+        @User() user: { sub: number }, // Inject authenticated user ID
     ) : Promise<UsuarioBloqueado> {
-        return this.userBloqueadoService.unblockUser(data.id_usuario, data.id_usuario_bloqueado);
+        return this.userBloqueadoService.unblockUser(user.sub, data.id_usuario_bloqueado, user.sub); // Pass user.sub as requestingUserId
+    }
+    // Changed DELETE /users-bloqueados/:id to take requesting user ID
+    @Delete(':id')
+    async deleteUserBloqueado(
+        @Param('id') id: string,
+        @User() user: { sub: number }, // For authorization check in service
+    ) : Promise<UsuarioBloqueado> {
+        return this.userBloqueadoService.deleteUserBloqueado(Number(id), user.sub); // Pass user.sub as requestingUserId
     }
 }
