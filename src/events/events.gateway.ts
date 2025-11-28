@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { MensagensService } from '../services/mensagens/mensagens.service';
 import { CreateMensagemDto } from 'src/controllers/mensagens/mensagens.dto';
 import { JwtService } from '@nestjs/jwt'; // Import JwtService
+import { decrypt } from '../helpers/crypt';
 
 @WebSocketGateway({
   cors: {
@@ -61,6 +62,19 @@ export class EventsGateway
         [], // No file uploads via WebSocket directly
         userId, // Pass the authenticated userId
       );
+
+      if (savedMessage.conteudo && savedMessage.iv) {
+        try {
+          const data = {
+            content: savedMessage.conteudo,
+            iv: savedMessage.iv,
+          };
+          savedMessage.conteudo = await decrypt(data);
+        } catch (error) {
+          this.logger.error('Error decrypting message on-the-fly', error);
+          savedMessage.conteudo = 'Error decrypting message';
+        }
+      }
 
       if (payload.id_conversa) {
         // Emite a mensagem para a sala específica da conversa
