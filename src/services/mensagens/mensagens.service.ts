@@ -67,12 +67,37 @@ export class MensagensService {
     }
     return msg;
   }
-  async getMensagensByConversaId(id_conversa: number): Promise<Mensagem[]> {
+  async getMensagensByConversaId(id_conversa: number, currentUserId: number): Promise<Mensagem[]> {
     const msgs = await this.prisma.mensagem.findMany({
       where: { id_conversa },
-      include: { anexos: true, remetente: true },
+      include: { 
+        anexos: true, 
+        remetente: true,
+        leituramensagem: { // Include read receipts
+          select: {
+            id_usuario: true,
+            data_hora_leitura: true,
+          }
+        }
+      },
       orderBy: { criado_em: 'desc' },
     });
+
+    const conversas = await this.prisma.conversa.findUnique({
+      where: { id_conversa },
+      include: {
+        participante_conversa: {
+          select: {
+            id_usuario: true,
+          },
+        },
+      },
+    });
+
+    const otherParticipantIds = conversas?.participante_conversa
+      .map(p => p.id_usuario)
+      .filter(id => id !== currentUserId) ?? [];
+
 
     for (const msg of msgs) {
       try {
@@ -87,6 +112,16 @@ export class MensagensService {
         // Decryption failed, set content to a default error message or handle as needed
         msg.conteudo = 'Error decrypting message';
       }
+
+      // Determine read status for the current user
+      // msg.isRead = msg.leituramensagem.some(
+      //   (leitura) => leitura.id_usuario === currentUserId,
+      // );
+
+      // Determine if read by at least one other participant
+      (msg as any).isReadByAnyOtherParticipant = msg.leituramensagem.some(
+        (leitura) => otherParticipantIds.includes(leitura.id_usuario),
+      );
     }
     return msgs;
   }

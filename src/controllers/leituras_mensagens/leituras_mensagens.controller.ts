@@ -42,5 +42,13 @@ export class LeituraMensagemController {
   ): Promise<LeituraMensagem> {
     return this.leituraMensagemService.deleteLeituraMensagem(Number(id), user.sub);
   }
+
+  @Post('conversa/:id_conversa/read')
+  async markConversationAsRead(
+    @Param('id_conversa') id_conversa: string,
+    @User() user: { sub: number },
+  ) {
+    return this.leituraMensagemService.markConversationAsRead(Number(id_conversa), user.sub);
+  }
 }
 

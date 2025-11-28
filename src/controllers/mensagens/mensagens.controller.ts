@@ -33,9 +33,11 @@ export class MensagensController {
   @Get('conversa/:id_conversa')
   async getMensagensByConversaId(
     @Param('id_conversa') id_conversa: string,
+    @User() user: { sub: number },
   ): Promise<Mensagem[]> {
     return this.mensagensService.getMensagensByConversaId(
       Number(id_conversa),
+      user.sub,
     );
   }
 

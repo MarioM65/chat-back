@@ -1,11 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
+
+import { Body, Controller, Delete, Get, Param, Post, Put, Patch, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Usuario } from 'generated/prisma';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { UserService } from 'src/services/user/user.service';
 import { RegisterDto } from '../auth/auth.dto';
-import { UpdateUserDto } from './users.dto';
+import { UpdateUserDto, UpdateUserStatusDto } from './users.dto'; // Import UpdateUserStatusDto
 import { User } from 'src/common/decorators/user.decorator'; // Import User decorator
 
 @Controller('users')
@@ -45,7 +46,7 @@ export class UsersController {
     ) : Promise<Usuario|null> {
         return this.userService.getUserById(Number(id));
     }
-    @Put() // Removed ':id' from path
+    @Put(':id') // Added ':id' to path
     @UseInterceptors(
       FileInterceptor('foto_perfil', {
         storage: diskStorage({
@@ -59,15 +60,24 @@ export class UsersController {
       }),
     )
     async updateUser(
+        @Param('id') id: string, // Added @Param('id')
         @Body() data: UpdateUserDto,
-        @User() user: { sub: number }, // Added User decorator
         @UploadedFile() foto_perfil?: Express.Multer.File,
     ) : Promise<Usuario> {
         if (foto_perfil) {
             data.foto_perfil = join('uploads/fotos_perfil', foto_perfil.filename);
         }
-        return this.userService.updateUser(user.sub, data); // Passed user.sub
+        return this.userService.updateUser(Number(id), data); // Changed to use id from param
     }
+
+    @Patch(':id/status') // New endpoint for status update
+    async updateUserStatus(
+        @Param('id') id: string,
+        @Body() data: UpdateUserStatusDto,
+    ) : Promise<Usuario> {
+        return this.userService.updateUserStatus(Number(id), data.status??'Offline');
+    }
+
     @Delete(':id')
     async deleteUser(
         @Param('id') id: string

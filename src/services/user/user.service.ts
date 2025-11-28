@@ -65,6 +65,18 @@ export class UserService {
             },
         });
     }
+
+    async updateUserStatus(id: number, status: string) {
+        const user = await this.prisma.usuario.findUnique({ where: { id } });
+        if (!user) {
+            throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        }
+        return this.prisma.usuario.update({
+            where: { id },
+            data: { status },
+        });
+    }
+
     async trashedUsers() {
         return this.prisma.usuario.findMany({
             where: { deletado_em: { not: null } },

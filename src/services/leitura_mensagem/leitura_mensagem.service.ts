@@ -71,5 +71,35 @@ export class LeituraMensagemService {
       )
     } 
 
+  async markConversationAsRead(id_conversa: number, userId: number) {
+    const unreadMessages = await this.prisma.mensagem.findMany({
+      where: {
+        id_conversa: id_conversa,
+        leituramensagem: {
+          none: {
+            id_usuario: userId,
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
 
+    if (unreadMessages.length === 0) {
+      return { count: 0 };
+    }
+
+    const data = unreadMessages.map((message) => ({
+      id_mensagem: message.id,
+      id_usuario: userId,
+      data_hora_leitura: new Date(),
+    }));
+
+    const result = await this.prisma.leituraMensagem.createMany({
+      data,
+    });
+
+    return result;
+  }
 }

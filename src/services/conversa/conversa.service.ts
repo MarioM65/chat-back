@@ -2,13 +2,13 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateConversa, UpdateConversa } from 'src/interfaces/conversa';
 import { Conversa, TipoParticipante } from 'generated/prisma';
+import { decrypt } from 'src/helpers/crypt';
 
 @Injectable()
 export class ConversaService {
   constructor(private prisma: PrismaService) {}
 
   async getAllConversas(currentUserId: number) {
-    // Only fetch conversations where currentUserId is a participant
     const conversas = await this.prisma.conversa.findMany({
       where: {
         participante_conversa: {
@@ -23,12 +23,64 @@ export class ConversaService {
             usuario: true,
           },
         },
+        mensagens: {
+          orderBy: {
+            criado_em: 'desc',
+          },
+          take: 1, // Get only the latest message
+          include: {
+            remetente: true, // Include remetente for the last message
+            anexos: true, // Include anexos for the last message
+          },
+        },
       },
+      orderBy: {
+        // Order conversations by the latest message's creation time
+        mensagens: {
+          _count: 'desc', // This is a trick to order by relation, will need to refine
+        }
+      }
     });
 
-    return conversas.map((conversa) =>
-      this.processConversaForDisplay(conversa, currentUserId),
+    const conversasWithDetails = await Promise.all(
+      conversas.map(async (conversa) => {
+        const unreadCount = await this.prisma.mensagem.count({
+          where: {
+            id_conversa: conversa.id_conversa,
+            leituramensagem: {
+              none: {
+                id_usuario: currentUserId,
+              },
+            },
+          },
+        });
+        let lastMessage = conversa.mensagens.length > 0 ? conversa.mensagens[0] : null;
+        if (lastMessage?.iv && lastMessage?.conteudo) {
+          try {
+            const data = {
+              content: lastMessage.conteudo,
+              iv: lastMessage.iv,
+            };
+            lastMessage.conteudo = await decrypt(data);
+          } catch (error) {
+            // Decryption failed, set content to a default error message or handle as needed
+            lastMessage.conteudo = 'Error decrypting message';
+          }
+        }
+
+
+        return this.processConversaForDisplay(conversa, currentUserId, lastMessage, unreadCount);
+      }),
     );
+
+    // Sort by last message date, newest first
+    conversasWithDetails.sort((a, b) => {
+      const dateA = a.last_message?.criado_em || new Date(0);
+      const dateB = b.last_message?.criado_em || new Date(0);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    return conversasWithDetails;
   }
 
   async getConversaById(id_conversa: number, currentUserId: number) {
@@ -54,10 +106,81 @@ export class ConversaService {
       throw new HttpException('Unauthorized to access this conversation', HttpStatus.FORBIDDEN);
     }
 
-    return this.processConversaForDisplay(conversa, currentUserId);
+    return this.processConversaForDisplay(conversa, currentUserId, null, 0); // lastMessage and unreadCount are not needed for a single conversation
   }
 
   async createConversa(data: CreateConversa, creatorId: number) {
+    if (!data.participantes || data.participantes.length === 0) {
+      throw new HttpException(
+        'Conversations must have participants.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    let otherParticipantId: number | undefined;
+
+
+    // Handle individual conversation logic upfront
+    if (data.tipo_conversa === 'individual') {
+      // For individual, expect exactly two participants: creator and one other
+      if (data.participantes.length !== 2) {
+        throw new HttpException(
+          'Individual conversations must have exactly two participants (including the creator).',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      otherParticipantId = data.participantes!.find(
+        (p) => p.id_usuario !== creatorId,
+      )?.id_usuario;
+
+      if (!otherParticipantId) {
+        throw new HttpException(
+          'Could not identify the other participant for an individual conversation.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Find if an individual conversation already exists between creatorId and otherParticipantId
+      const existingIndividualConversation = await this.prisma.conversa.findFirst({
+        where: {
+          tipo_conversa: 'individual',
+          AND: [
+            {
+              participante_conversa: {
+                some: { id_usuario: creatorId },
+              },
+            },
+            {
+              participante_conversa: {
+                some: { id_usuario: otherParticipantId },
+              },
+            },
+            {
+              participante_conversa: {
+                every: {
+                  OR: [
+                    { id_usuario: creatorId },
+                    { id_usuario: otherParticipantId },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          participante_conversa: {
+            include: {
+              usuario: true,
+            },
+          },
+        },
+      });
+
+      if (existingIndividualConversation) {
+        return existingIndividualConversation;
+      }
+    } // Correctly close the if block here
+
     // Use a transaction to ensure atomicity
     return this.prisma.$transaction(async (prisma) => {
       // 1. Create the conversation
@@ -69,46 +192,59 @@ export class ConversaService {
         },
       });
 
-      // 2. Prepare participant IDs, ensuring uniqueness and including the creator
-      let participantIds = new Set<number>();
+      // 2. Prepare participant data including roles
+      type ConversationParticipantToCreate = {
+        id_conversa: number;
+        id_usuario: number;
+        tipo_participante: TipoParticipante;
+      };
 
-      // Add creator first as CRIADOR
-      participantIds.add(creatorId);
+      const uniqueParticipantsMap = new Map<number, TipoParticipante>();
 
-      // Add other participants from data, filtering out duplicates and the creator if already added
-      if (data.id_usuarios && data.id_usuarios.length > 0) {
-        data.id_usuarios.forEach(id => participantIds.add(id));
+      // Add creator as CRIADOR, ensuring creator's role is always CRIADOR
+      uniqueParticipantsMap.set(creatorId, TipoParticipante.CRIADOR);
+
+      // Process other participants from data.participantes
+      for (const participantData of data.participantes!) {
+        if (participantData.id_usuario === creatorId) {
+          // Creator's role is already set as CRIADOR, skip or ensure it remains CRIADOR
+          // If the DTO specifies a role for the creator, we ensure CRIADOR takes precedence
+          uniqueParticipantsMap.set(creatorId, TipoParticipante.CRIADOR);
+        } else {
+          uniqueParticipantsMap.set(
+            participantData.id_usuario,
+            participantData.papel || TipoParticipante.MEMBRO,
+          );
+        }
       }
 
-      // Convert Set back to Array
-      const uniqueParticipantIds = Array.from(participantIds);
+      const participantsToCreate: ConversationParticipantToCreate[] = Array.from(
+        uniqueParticipantsMap,
+      ).map(([id_usuario, tipo_participante]) => ({
+        id_conversa: conversa.id_conversa,
+        id_usuario,
+        tipo_participante,
+      }));
 
-      // Ensure all participant IDs actually exist
+      // Ensure all participant IDs actually exist (simplified check for now)
+      const uniqueParticipantIds = participantsToCreate.map(p => p.id_usuario);
       const existingUsers = await prisma.usuario.findMany({
         where: {
           id: { in: uniqueParticipantIds }
         },
         select: { id: true }
       });
-
       const existingUserIds = new Set(existingUsers.map(u => u.id));
 
-      const validParticipantCreates = uniqueParticipantIds
-        .filter(id => existingUserIds.has(id)) // Only add existing users
-        .map((idUsuario) => ({
-          id_conversa: conversa.id_conversa,
-          id_usuario: idUsuario,
-          // Set creator as CRIADOR, others as MEMBRO
-          tipo_participante: idUsuario === creatorId ? TipoParticipante.CRIADOR : TipoParticipante.MEMBRO,
-        }));
+      const validParticipants = participantsToCreate.filter(p => existingUserIds.has(p.id_usuario));
 
-      if (validParticipantCreates.length === 0) {
+      if (validParticipants.length === 0) {
         throw new HttpException('No valid participants found for the conversation, including the creator.', HttpStatus.BAD_REQUEST);
       }
 
       // 3. Create all participants
       await prisma.participanteConversa.createMany({
-        data: validParticipantCreates,
+        data: validParticipants,
       });
 
       return conversa;
@@ -200,7 +336,7 @@ export class ConversaService {
     });
   }
 
-  private processConversaForDisplay(conversa: any, currentUserId: number) {
+  private processConversaForDisplay(conversa: any, currentUserId: number, lastMessage: any | null, unreadCount: number) {
     let displayName: string;
     let displayImage: string | null = null;
 
@@ -219,6 +355,8 @@ export class ConversaService {
       ...conversa,
       display_name: displayName,
       display_image: displayImage,
+      last_message: lastMessage,
+      unread_count: unreadCount,
     };
   }
 }
